@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TATETI BMW vs BMWi</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .game-container {
+            text-align: center;
+            position: relative;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-gap: 5px;
+            margin-bottom: 20px;
+        }
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-color: white;
+            border: 1px solid #ccc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+        .cell img {
+            max-width: 80%;
+            max-height: 80%;
+            object-fit: contain;
+        }
+        button {
+            font-size: 16px;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        .winning-line {
+            position: absolute;
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="board" id="board"></div>
+        <button onclick="resetGame()">Nuevo Juego</button>
+    </div>
+
+    <script>
+        const board = document.getElementById('board');
+        let currentPlayer = 'BMW';
+        let gameBoard = ['', '', '', '', '', '', '', '', ''];
+        let gameActive = true;
+        const winningCombos = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8], // Filas
+            [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columnas
+            [0, 4, 8], [2, 4, 6] // Diagonales
+        ];
+
+        // Reemplaza estas URLs con las correctas cuando subas las imágenes
+        const logoURLs = {
+            'BMW': '/img/BMW_logo.png',  // Reemplazar con la URL del logo de BMW en gris
+            'BMWi': '/img/BMW-i-Logo.png'  // Reemplazar con la URL del logo de BMWi
+        };
+
+        const winningColors = ['#007eed', '#522dae', '#f40000'];
+
+        function createBoard() {
+            board.innerHTML = '';
+            gameBoard.forEach((cell, index) => {
+                const cellElement = document.createElement('div');
+                cellElement.classList.add('cell');
+                cellElement.addEventListener('click', () => makeMove(index));
+                board.appendChild(cellElement);
+            });
+        }
+
+        function makeMove(index) {
+            if (gameBoard[index] === '' && gameActive) {
+                gameBoard[index] = currentPlayer;
+                const cell = board.children[index];
+                const img = document.createElement('img');
+                img.src = logoURLs[currentPlayer];
+                img.alt = currentPlayer;
+                cell.appendChild(img);
+                
+                const winningCombo = checkWinner();
+                if (winningCombo) {
+                    gameActive = false;
+                    drawWinningLines(winningCombo);
+                    setTimeout(() => alert(`¡${currentPlayer} ha ganado!`), 100);
+                } else if (gameBoard.every(cell => cell !== '')) {
+                    gameActive = false;
+                    setTimeout(() => alert('¡Empate!'), 100);
+                } else {
+                    currentPlayer = currentPlayer === 'BMW' ? 'BMWi' : 'BMW';
+                }
+            }
+        }
+
+        function checkWinner() {
+            for (let combo of winningCombos) {
+                if (combo.every(index => gameBoard[index] === currentPlayer)) {
+                    return combo;
+                }
+            }
+            return null;
+        }
+
+        function drawWinningLines(combo) {
+            const startCell = board.children[combo[0]].getBoundingClientRect();
+            const endCell = board.children[combo[2]].getBoundingClientRect();
+            const boardRect = board.getBoundingClientRect();
+
+            const isHorizontal = combo[1] - combo[0] === 1;
+            const isVertical = combo[1] - combo[0] === 3;
+
+            winningColors.forEach((color, index) => {
+                const lineElement = document.createElement('div');
+                lineElement.classList.add('winning-line');
+                lineElement.style.backgroundColor = color;
+
+                if (isHorizontal) {
+                    lineElement.style.width = '100px';
+                    lineElement.style.height = '10px';
+                    lineElement.style.top = `${startCell.top + startCell.height / 2 - boardRect.top - 5}px`;
+                    lineElement.style.left = `${startCell.left - boardRect.left + index * 100}px`;
+                } else if (isVertical) {
+                    lineElement.style.width = '10px';
+                    lineElement.style.height = '100px';
+                    lineElement.style.top = `${startCell.top - boardRect.top + index * 100}px`;
+                    lineElement.style.left = `${startCell.left + startCell.width / 2 - boardRect.left - 5}px`;
+                } else {
+                    // Diagonal
+                    //lineElement.style.width = '10px';
+                    //lineElement.style.height = '141px'; // √(100^2 + 100^2) ≈ 141
+                    //if (combo[0] === 0) {
+                    //    lineElement.style.top = `${startCell.top - boardRect.top + index * 3}px`;
+                    //    lineElement.style.left = `${startCell.left - boardRect.left + index * 3}px`;
+                    //    lineElement.style.transform = 'rotate(45deg)';
+                    //    lineElement.style.transformOrigin = 'top left';
+                    //} else {
+                    //    lineElement.style.top = `${startCell.top - boardRect.top + index * 3}px`;
+                    //    lineElement.style.left = `${endCell.left - boardRect.left - index * 3}px`;
+                    //    lineElement.style.transform = 'rotate(-45deg)';
+                    //    lineElement.style.transformOrigin = 'top right';
+                    //}
+                }
+
+                board.parentElement.appendChild(lineElement);
+            });
+        }
+
+        function resetGame() {
+            gameBoard = ['', '', '', '', '', '', '', '', ''];
+            currentPlayer = 'BMW';
+            gameActive = true;
+            createBoard();
+            const winningLines = document.querySelectorAll('.winning-line');
+            winningLines.forEach(line => line.remove());
+        }
+
+        createBoard();
+    </script>
+</body>
+</html>
